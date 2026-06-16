@@ -26,32 +26,32 @@ class SimpleAgent(Agent):
     self.max_information_tokens = config.get('information_tokens', 8)
 
   @staticmethod
-  def playable_card(card, fireworks):
+  def playable_card(card, fireworks): 
     """A card is playable if it can be placed on the fireworks pile."""
-    return card['rank'] == fireworks[card['color']]
+    return card['rank'] == fireworks[card['color']] # Return True if card rank is equivalent to the number of cards in the fireworks pile for that color, meaning it can be played.
 
   def act(self, observation):
     """Act based on an observation."""
-    if observation['current_player_offset'] != 0:
+    if observation['current_player_offset'] != 0: # Only act if it's our turn.
       return None
 
     # Check if there are any pending hints and play the card corresponding to
     # the hint.
-    for card_index, hint in enumerate(observation['card_knowledge'][0]):
-      if hint['color'] is not None or hint['rank'] is not None:
-        return {'action_type': 'PLAY', 'card_index': card_index}
+    for card_index, hint in enumerate(observation['card_knowledge'][0]): # Iterate over the cards in our hand and check if there is a hint about them.
+      if hint['color'] is not None or hint['rank'] is not None: # If we know both colour and rank
+        return {'action_type': 'PLAY', 'card_index': card_index} # Play the card 
 
     # Check if it's possible to hint a card to your colleagues.
-    fireworks = observation['fireworks']
+    fireworks = observation['fireworks'] # Get the current state of the fireworks piles. This is a list of integers where the index corresponds to the color and the value corresponds to the highest rank card currently on the pile.
     if observation['information_tokens'] > 0:
       # Check if there are any playable cards in the hands of the opponents.
       for player_offset in range(1, observation['num_players']):
-        player_hand = observation['observed_hands'][player_offset]
-        player_hints = observation['card_knowledge'][player_offset]
+        player_hand = observation['observed_hands'][player_offset] 
+        player_hints = observation['card_knowledge'][player_offset] 
         # Check if the card in the hand of the opponent is playable.
         for card, hint in zip(player_hand, player_hints):
           if SimpleAgent.playable_card(card,
-                                       fireworks) and hint['color'] is None:
+                                       fireworks) and hint['color'] is None: # Check if card is playable and if there is no pre-existing hint 
             return {
                 'action_type': 'REVEAL_COLOR',
                 'color': card['color'],
@@ -59,7 +59,7 @@ class SimpleAgent(Agent):
             }
 
     # If no card is hintable then discard or play.
-    if observation['information_tokens'] < self.max_information_tokens:
+    if observation['information_tokens'] < self.max_information_tokens:# If the no. of tokens is less than max, discard to gain token
       return {'action_type': 'DISCARD', 'card_index': 0}
     else:
       return {'action_type': 'PLAY', 'card_index': 0}

@@ -961,7 +961,7 @@ class ObservationEncoder(object):
     shape = [int(x) for x in shape_string.split(",")]
     return shape
 
-  def encode(self, observation):
+  def encode(self, observation): 
     """Encode the observation as a sequence of bits."""
     c_encoding_str = lib.EncodeObservation(self._encoder,
                                            observation.observation())
