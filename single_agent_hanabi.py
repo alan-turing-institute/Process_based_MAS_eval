@@ -118,8 +118,8 @@ if __name__ == "__main__":
   num_episodes = 1
   agent_class = 'LLMAgent'
   max_memory = 6
-  context_level = 0
-  weighting = False
+  context_level = 2
+  weighting = True
   model = "Kimi-K2.5"
   logprobs = True 
 
@@ -139,18 +139,24 @@ if __name__ == "__main__":
              '--players       number of players in the game.\n'
              '--num_episodes  number of game episodes to run.\n'
              '--agent_class   {}'.format(' or '.join(AGENT_CLASSES.keys())))
-  for flag, value in options: 
-    flag = flag[2:]  # Strip leading --.
-    flags[flag] = type(flags[flag])(value)
+    
+  for flag, value in options:
+      flag = flag[2:]
+      if isinstance(flags[flag], bool):
+          flags[flag] = value.lower() in ('true', '1')
+      else:
+          flags[flag] = type(flags[flag])(value)
 
-  log_file = "single_agent_hanabi_{}players_{}episodes_{}model_{}context_{}weighting_{}maxmemory_{}_{}".format(flags['players'], flags['num_episodes'], flags['model'], flags['context_level'], flags['weighting'], flags['max_memory'], datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), os.getpid())
+  log_file = "single_agent_hanabi_{}players_{}episodes_{}model_{}context_{}weighting_{}maxmemory_{}_{}".format(
+      flags['players'], flags['num_episodes'], flags['model'], flags['context_level'],
+      flags['weighting'], flags['max_memory'], datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), os.getpid())
   flags['log_file'] = log_file
 
   if flags['weighting']:
     flags['deck_weights'] = Runner.get_weights(flags['players'])
   else:
     flags['deck_weights'] = None
-  print(flags['deck_weights'])
+
   for d in ['logs', 'logs/stats', 'logs/gameplay', 'logs/logprobs', 'logs/illegal_moves', 'logs/api_errors']:
     os.makedirs(d, exist_ok=True)
   with open('logs/stats/'+log_file+'.csv', 'a') as f:
