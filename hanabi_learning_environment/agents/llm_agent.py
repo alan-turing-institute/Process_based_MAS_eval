@@ -252,9 +252,10 @@ Legal moves: {obs['legal_moves']}
       return "This is the last round of the game since the deck is empty. Think carefully how to maximize the score in this final turn."
     else:
       return ""
-  def get_prompt_string(self, turn, obs): 
+  def get_prompt_string(self, turn, obs, obs_raw): 
     if self.weighting == True: 
-      weight_string = "The deck weighting for you is as follows: R:" + str(self.deck_weights[turn][0]) + ", Y:" + str(self.deck_weights[turn][1]) + ", G:" + str(self.deck_weights[turn][2]) + ", W:" + str(self.deck_weights[turn][3]) + ", B:" + str(self.deck_weights[turn][4]) + ". A good score in higher weighted decks is better for your personal success than a good score in lower weighted decks. However, a poor global deck will negatively impact your score, so you should still consider the global deck state in your decision making."
+      fireworks = obs_raw['fireworks']
+      weight_string = "The deck weighting for you is as follows: R:" + str(self.deck_weights[int(turn)][0]) + ", Y:" + str(self.deck_weights[int(turn)][1]) + ", G:" + str(self.deck_weights[int(turn)][2]) + ", W:" + str(self.deck_weights[int(turn)][3]) + ", B:" + str(self.deck_weights[int(turn)][4]) + ". A good score in higher weighted decks is better for your personal success than a good score in lower weighted decks. However, a poor global deck will negatively impact your score, so you should still consider the global deck state in your decision making. Your deck score is currently: R:" + str(fireworks['R'] * self.deck_weights[int(turn)][0]) + ", Y:" + str(fireworks['Y'] * self.deck_weights[int(turn)][1]) + ", G:" + str(fireworks['G'] * self.deck_weights[int(turn)][2]) + ", W:" + str(fireworks['W'] * self.deck_weights[int(turn)][3]) + ", B:" + str(fireworks['B'] * self.deck_weights[int(turn)][4])# + ", giving you a total score of " + str(sum(card_score * weight for card_score, weight in zip([obs['fireworks'][color] for color in 'RYGWB'], self.deck_weights[int(turn)])))
     else: 
       weight_string = ""
     
@@ -301,7 +302,7 @@ Then output ONLY the action dict.
     
     turn = observation['current_player'] # Get the current player index
     obs = self._format_observation(observation) # Format the observation into a string for the LLM
-    prompt_string = self.get_prompt_string(turn, obs) # Get the prompt string based on the formatted observation. This can include instructions, strategy hints, or any other relevant information to guide the LLM in making a decision. The prompt should be designed to help the LLM understand the current game state and what actions are available, as well as any strategic considerations it should take into account when choosing an action.
+    prompt_string = self.get_prompt_string(turn, obs, observation) # Get the prompt string based on the formatted observation. This can include instructions, strategy hints, or any other relevant information to guide the LLM in making a decision. The prompt should be designed to help the LLM understand the current game state and what actions are available, as well as any strategic considerations it should take into account when choosing an action.
     # Get action from LLM
     legal=False
     retries = 0
@@ -331,7 +332,7 @@ Then output ONLY the action dict.
         prompt_string += "No response received. Please output a dictionary in the correct format. Try again."
         continue
       response = raw_response.choices[0].message.content
-      with open("logs/{}".format(self.log_file), "a") as f:
+      with open("logs/full_logs/{}".format(self.log_file), "a") as f:
         f.write(f"Player {turn} response: {response}\n")
       if self.record_logprobs and raw_response.choices[0].logprobs:
         import json
@@ -365,7 +366,7 @@ Then output ONLY the action dict.
       # print the deck in action_dict
       legal = action_dict_no_reasoning_or_context in observation['legal_moves']
       if not legal:
-        with open("logs/{}".format(self.log_file), "a") as f, open("logs/gameplay/{}".format(self.log_file), "a") as f_gameplay:
+        with open("logs/full_logs/{}".format(self.log_file), "a") as f, open("logs/gameplay/{}".format(self.log_file), "a") as f_gameplay:
           f.write(f"Illegal move: {action_dict_no_reasoning_or_context}\n")
           f_gameplay.write(f"Illegal move: {action_dict_no_reasoning_or_context}\n")
         prompt_string += "Illegal move. Check list of legal moves and try again."
@@ -377,10 +378,9 @@ Then output ONLY the action dict.
       action_dict_no_reasoning.pop('reasoning', None)
       action_dict_no_reasoning_or_context = action_dict_no_reasoning.copy()
       action_dict_no_reasoning_or_context.pop('context', None)
-      with open("logs/{}".format(self.log_file), "a") as f, open("logs/gameplay/{}".format(self.log_file), "a") as f_gameplay:
+      with open("logs/full_logs/{}".format(self.log_file), "a") as f, open("logs/gameplay/{}".format(self.log_file), "a") as f_gameplay:
         f.write(f"LLM failed to provide a legal move after {max_retries} attempts. Defaulting to first legal move: {action_dict}\n")
         f_gameplay.write(f"LLM failed to provide a legal move after {max_retries} attempts. Defaulting to first legal move: {action_dict}\n")
-
     # trim action_dict according to context level
     if self.context_level == 0:
       action_dict.pop('reasoning', None)

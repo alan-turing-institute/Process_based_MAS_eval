@@ -354,7 +354,7 @@ class HanabiEnv(Environment):
     # Apply the action to the state.
     self.state.apply_move(action)
     if log_file:
-      with open('logs/'+log_file, 'a') as f, open('logs/gameplay/'+log_file, 'a') as f_gameplay:
+      with open('logs/full_logs/'+log_file, 'a') as f, open('logs/gameplay/'+log_file, 'a') as f_gameplay:
         last_move = self.state.move_history()[-1]
         move_type = last_move.move().type()
         if move_type== pyhanabi.HanabiMoveType.PLAY:

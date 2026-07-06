@@ -34,7 +34,7 @@ class Runner(object):
   def __init__(self, flags):
     """Initialize runner."""
     self.flags = flags
-    self.agent_config = {'players': flags['players'], 'shared_memory': shared_memory, 'max_memory': flags['max_memory'], 'context_level': flags['context_level'], 'weighting': flags['weighting'], 'deck_weights': flags['deck_weights'], 'log_file': flags['log_file'], 'model': flags['model'], 'logprobs': flags['logprobs']} # max_memory is the number of previous actions to include in the prompt for the LLM. This is to provide context to the LLM about the recent history of the game, which can help it make more informed decisions. By including a limited number of previous actions, we can give the LLM enough information to understand the current state of the game and the strategies being employed, without overwhelming it with too much information that may not be relevant to the current decision.
+    self.agent_config = {'players': flags['players'], 'shared_memory': shared_memory, 'max_memory': flags['max_memory'], 'context_level': flags['context_level'], 'weighting': flags['weighting'], 'deck_weights': flags['deck_weights'], 'weight_type': flags['weight_type'], 'log_file': flags['log_file'], 'model': flags['model'], 'logprobs': flags['logprobs']} # max_memory is the number of previous actions to include in the prompt for the LLM. This is to provide context to the LLM about the recent history of the game, which can help it make more informed decisions. By including a limited number of previous actions, we can give the LLM enough information to understand the current state of the game and the strategies being employed, without overwhelming it with too much information that may not be relevant to the current decision.
     self.environment = env.make('Hanabi-Full', num_players=flags['players'])
     self.agent_class = AGENT_CLASSES[flags['agent_class']]
     self.log_file = flags['log_file']
@@ -76,7 +76,7 @@ class Runner(object):
         # check for target offset in the current_player_action and adjust if necessary
         episode_reward += reward
         if self.log_file:
-          with open('logs/'+self.log_file, 'a') as f, open('logs/gameplay/'+self.log_file, 'a') as f_gameplay:
+          with open('logs/full_logs/'+self.log_file, 'a') as f, open('logs/gameplay/'+self.log_file, 'a') as f_gameplay:
             f.write('Agent: {} action: {}. {}\n'.format(observation['current_player'],
                                             current_player_action, target_player_string))
             f_gameplay.write('Agent: {} action: {}. {}\n'.format(observation['current_player'],
@@ -89,41 +89,57 @@ class Runner(object):
         print('Current state of the game: {}'.format(self.environment.state))
         #print('Current memory of the agent: {}'.format(shared_memory[-self.agent_config['max_memory']:]))
         if self.log_file:
-          with open('logs/'+self.log_file, 'a') as f, open('logs/gameplay/'+self.log_file, 'a') as f_gameplay:
+          with open('logs/full_logs/'+self.log_file, 'a') as f, open('logs/gameplay/'+self.log_file, 'a') as f_gameplay:
             f.write('Current state of the game: {}\n'.format(self.environment.state))
             f_gameplay.write('Current state of the game: {}\n'.format(self.environment.state))
+            if self.flags['weighting'] == True: 
+              for agent_id in range(self.flags['players']):
+                current_deck = [observation['fireworks']['R'], observation['fireworks']['Y'], observation['fireworks']['G'], observation['fireworks']['W'], observation['fireworks']['B']]
+                player_weights = self.flags['deck_weights'][agent_id]
+                local_score = []
+                [local_score.append(current_deck[i] * player_weights[i]) for i in range(len(current_deck))]
+                print('Local score of player {}: {}'.format(agent_id, local_score))
+                f.write('Local score of player {}: {}\n'.format(agent_id, local_score))
+                f_gameplay.write('Local score of player {}: {}\n'.format(agent_id, local_score))
         turn += 1 
       rewards.append(episode_reward)
       print('Running episode: %d' % episode)
       print('Max Reward: %.3f' % max(rewards))
       if self.log_file:
-        with open('logs/'+self.log_file, 'a') as f, open('logs/gameplay/'+self.log_file, 'a') as f_gameplay:
+        with open('logs/full_logs/'+self.log_file, 'a') as f, open('logs/gameplay/'+self.log_file, 'a') as f_gameplay:
           f.write('Running episode: %d\n' % episode)
           f.write('Max Reward: %.3f\n' % max(rewards))
+          # write the local score of each player to the log file 
     return rewards
   
-  def get_weights(n_players): 
+  def get_weights(n_players, weight_type): 
     np.random.seed(0)
     n_decks = 5
-    weights_array = [] 
-    for i in range(n_players):
-      weights = np.random.rand(n_decks)
-      weights = weights / np.sum(weights)
-      assert sum(weights) == 1, "Weights must sum to 1."
-      weights_array.append(weights)
-    return weights_array
+    weights_comp = [[1.0, 0.0, 0.0, 0.5, 0.5],[0.0, 1.0, 0.0, 0.5,0.5],[0.0, 0.0, 1.0, 0.5, 0.5]]
+    weights_mix = [[0.666, 0.333, 0.333, 0.5, 0.5],[0.333, 0.666, 0.333, 0.5, 0.5],[0.333, 0.333, 0.666, 0.5, 0.5]]
+
+    if weight_type == 'fullcoop':
+      weights = [[1.0, 1.0, 1.0, 0.5, 0.5] for _ in range(n_players)]
+    elif weight_type == 'fullcomp':
+      weights = weights_comp[:n_players]
+    elif weight_type == 'mixcoop':
+      weights = weights_mix[:n_players]
+    else:
+      raise ValueError("Invalid weight_type. Must be 'fullcoop', 'fullcomp', or 'mixcoop'.")
+    return weights
 
 if __name__ == "__main__":
   players = 3
   num_episodes = 1
   agent_class = 'LLMAgent'
   max_memory = 6
-  context_level = 2
+  context_level = 0
   weighting = True
   model = "Kimi-K2.5"
   logprobs = True 
+  weight_type = 'fullcoop' # fullcoop, mixcoop, fullcomp
 
-  flags = {'players': players, 'num_episodes': num_episodes, 'agent_class': agent_class, 'max_memory': max_memory, 'context_level': context_level, 'weighting': weighting, 'model':model, 'logprobs': logprobs}
+  flags = {'players': players, 'num_episodes': num_episodes, 'agent_class': agent_class, 'max_memory': max_memory, 'context_level': context_level, 'weighting': weighting, 'model':model, 'logprobs': logprobs, 'weight_type': weight_type}
   options, arguments = getopt.getopt(sys.argv[1:], '',
                                      ['players=',
                                       'num_episodes=',
@@ -133,7 +149,8 @@ if __name__ == "__main__":
                                       'weighting=',
                                       'log_file=',
                                       'model=',
-                                      'logprobs='])
+                                      'logprobs=',
+                                      'weight_type='])
   if arguments:
     sys.exit('usage: single_agent_hanabi.py [options]\n'
              '--players       number of players in the game.\n'
@@ -147,17 +164,17 @@ if __name__ == "__main__":
       else:
           flags[flag] = type(flags[flag])(value)
 
-  log_file = "single_agent_hanabi_{}players_{}episodes_{}model_{}context_{}weighting_{}maxmemory_{}_{}".format(
+  log_file = "single_agent_hanabi_{}players_{}episodes_{}model_{}context_{}weighting_{}type_{}maxmemory_{}_{}".format(
       flags['players'], flags['num_episodes'], flags['model'], flags['context_level'],
-      flags['weighting'], flags['max_memory'], datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), os.getpid())
+      flags['weighting'], flags['weight_type'], flags['max_memory'], datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), os.getpid())
   flags['log_file'] = log_file
 
   if flags['weighting']:
-    flags['deck_weights'] = Runner.get_weights(flags['players'])
+    flags['deck_weights'] = Runner.get_weights(flags['players'], flags['weight_type'])
   else:
     flags['deck_weights'] = None
 
-  for d in ['logs', 'logs/stats', 'logs/gameplay', 'logs/logprobs', 'logs/illegal_moves', 'logs/api_errors']:
+  for d in ['logs', 'logs/full_logs', 'logs/stats', 'logs/gameplay', 'logs/logprobs', 'logs/illegal_moves', 'logs/api_errors']:
     os.makedirs(d, exist_ok=True)
   with open('logs/stats/'+log_file+'.csv', 'a') as f:
     f.write('turn,player_no,action,life_tokens,information_tokens,firework_R,firework_Y,firework_G,firework_W,firework_B,reward\n')
