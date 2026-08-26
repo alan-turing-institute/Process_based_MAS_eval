@@ -5,12 +5,25 @@ Gameplay is started through the single_agent_hanabi.py file. Once this file is r
 The parameters of the game can either be set through the terminal: 
 
 ```bash 
-python single_agent_hanabi.py --model="Kimi-K2.5" --players=3
+python single_agent_hanabi.py --model="Kimi-K2.5" --players=3 --num_episodes=1
 ```
-or within script. 
+or within script. The list of controllable variables are as follows: 
+|Flag | Data Type | Description|
+|-|-|-|
+|players |int| number of players in each game |
+|num_episodes |int| the number of episodes played while the script is running (NOTE: these will all be recorded in the same log files, including the same *stats* file which tracks different statistics of interested over the course of a game)|
+|agent_class |str| which agent class to implement as the players. This currently only includes LLMAgent, but additional classes can be added by the user. |
+|max_memory |int| the maximum previous number of moves passed to the next player |
+|context_level |int| level of information a player can include when giving a hint |
+|weighting |bool| whether or not weighting is included |
+|weight_type |str| weighting type to be used|
+|logprobs |bool| whether logprobs should be recorded or not |
+
 
 This setup allows for one model to be used for all players, which is set up in llm_agent.py. This uses the *autogen* package to connect to an Azure-deployed model, where the API key and environment are pulled from the .env file. When a model requires a version be specified, this can be specified in the .env file, and this is then mapped in llm_agent.py to that model name. 
 
+## Log Files
+*add section explaining different log files*
 
 ## Notable Changes
 Several changes were made from the DeepMind code to adapt this set-up for our purposes. These are as follows: 
