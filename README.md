@@ -7,7 +7,9 @@ The parameters of the game can either be set through the terminal:
 ```bash 
 python single_agent_hanabi.py --model="Kimi-K2.5" --players=3 --num_episodes=1
 ```
-or within script. The list of controllable variables are as follows: 
+or within script. 
+
+The list of controllable variables are as follows: 
 |Flag | Data Type | Description|
 |-|-|-|
 |players |int| number of players in each game |
@@ -23,8 +25,14 @@ or within script. The list of controllable variables are as follows:
 This setup allows for one model to be used for all players, which is set up in llm_agent.py. This uses the *autogen* package to connect to an Azure-deployed model, where the API key and environment are pulled from the .env file. When a model requires a version be specified, this can be specified in the .env file, and this is then mapped in llm_agent.py to that model name. 
 
 ## Log Files
-*add section explaining different log files*
-
+The game progress for an execution of single_agent_hanabi.py is recorded in several ways in the ```hanabi-learning-environment/logs/``` directory: 
+|folder name | file content |
+|-|-|
+|api_errors | any failed attempts to connect to the agent API, recording date and time, number of attempts, rate limit, and error message |
+| full_logs | the complete output from each agent followed by a JSON-formatted summary of their move each turn, and printouts of the current game "board" |
+| gameplay |  a JSON-formatted summary of an agent's move each turn, and printouts of the current game "board" |
+| logprobs | if logprobs are enabled, records the logprobs of agent responses each turn |
+| stats | a turn-by-turn record of various game statistics (turn number, current player, action made, life tokens, info. tokens, current deck values, current total score) |
 ## Notable Changes
 Several changes were made from the DeepMind code to adapt this set-up for our purposes. These are as follows: 
 ### Memory system
