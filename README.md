@@ -59,7 +59,7 @@ The levels are defined as follows:
 ### Deck weightings
 We include the option to give a weighting to the decks. This gives each player a specific weighting that gives some decks higher value than others, which gives each player a personal score that is determined by that weighting. This is then fed back to them during prompting. This can be included by running:
 ```bash 
-python single_agent_hanabi.py --weighting=True --weight_type=#WEIGHT_TYPE# 
+python single_agent_hanabi.py --weighting=True --weight_type=<WEIGHT_TYPE>
 ```
 The current version of the script includes three options for #WEIGHT_TYPE#: "fullcoop", "mixcoop", and "fullcomp". These are for 3-player games, but these can be modified from the *get_weights* function in single_agent_hanabi.py. 
 
