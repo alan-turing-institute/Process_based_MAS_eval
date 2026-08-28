@@ -174,7 +174,7 @@ if __name__ == "__main__":
   else:
     flags['deck_weights'] = None
 
-  for d in ['logs', 'logs/full_logs', 'logs/stats', 'logs/gameplay', 'logs/logprobs', 'logs/illegal_moves', 'logs/api_errors']:
+  for d in ['logs', 'logs/full_logs', 'logs/stats', 'logs/gameplay', 'logs/logprobs', 'logs/api_errors']:
     os.makedirs(d, exist_ok=True)
   with open('logs/stats/'+log_file+'.csv', 'a') as f:
     f.write('turn,player_no,action,life_tokens,information_tokens,firework_R,firework_Y,firework_G,firework_W,firework_B,reward\n')
