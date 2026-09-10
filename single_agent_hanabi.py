@@ -102,6 +102,11 @@ class Runner(object):
                 f.write('Local score of player {}: {}\n'.format(agent_id, local_score))
                 f_gameplay.write('Local score of player {}: {}\n'.format(agent_id, local_score))
         turn += 1 
+      if self.log_file:
+        final_observation = observations['player_observations'][0]
+        if final_observation['life_tokens'] == 0:
+          with open('logs/stats/'+self.log_file+'.csv', 'a') as f:
+            f.write('{},{},{},{},{},{},{},{},{},{},{}\n'.format(turn, observation['current_player'], 'GAME_OVER', final_observation['life_tokens'], final_observation['information_tokens'], final_observation['fireworks']['R'], final_observation['fireworks']['Y'], final_observation['fireworks']['G'], final_observation['fireworks']['W'], final_observation['fireworks']['B'], episode_reward))
       rewards.append(episode_reward)
       print('Running episode: %d' % episode)
       print('Max Reward: %.3f' % max(rewards))
